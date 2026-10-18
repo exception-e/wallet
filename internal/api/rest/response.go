@@ -11,7 +11,7 @@ import (
 	servicetypes "walletApp/internal/service/types"
 )
 
-func writeError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *handler) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	status := http.StatusBadRequest
 	var response types.ErrorResponse
 	var bodyTooLarge *http.MaxBytesError
@@ -48,6 +48,8 @@ func writeError(w http.ResponseWriter, r *http.Request, err error) {
 		slog.ErrorContext(r.Context(), "HTTP request failed", "method", r.Method, "path", r.URL.Path, "error", err)
 	}
 	writeJSON(w, r, status, response)
+
+	h.logger.Error("Request err: %v", err)
 }
 
 func writeJSON(w http.ResponseWriter, r *http.Request, status int, response any) {

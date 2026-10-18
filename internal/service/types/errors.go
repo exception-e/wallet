@@ -9,4 +9,5 @@ var (
 	ErrInvalidOperationType  = errors.New("invalid operation type")
 	ErrInvalidIdempotencyKey = errors.New("invalid idempotency key")
 	ErrIdempotencyConflict   = errors.New("idempotency key was used with different parameters")
+	ErrInvalidCurrency       = errors.New("invalid currency")
 )

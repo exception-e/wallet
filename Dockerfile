@@ -1,4 +1,4 @@
-FROM golang:1.26-alpine AS builder
+FROM golang:1.27-alpine AS builder
 
 WORKDIR /app
 
@@ -13,7 +13,6 @@ RUN apk --no-cache add ca-certificates tzdata
 WORKDIR /app
 
 COPY --from=builder /app/walletApp .
-COPY --from=builder /app/internal/storage/migrations ./internal/storage/migrations
 EXPOSE 8080
 
-CMD ["./walletapp"]
+CMD ["/app/walletApp"]

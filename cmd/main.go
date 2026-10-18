@@ -17,7 +17,6 @@ import (
 	"walletApp/internal/storage/psql"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -26,10 +25,6 @@ func main() {
 		&slog.HandlerOptions{Level: slog.LevelDebug},
 	)
 	log := logger.New(logHandler)
-
-	if err := godotenv.Load(); err != nil {
-		log.Info("No .env, use provided environment variables")
-	}
 
 	cfg, err := config.Load(config.FileName)
 	if err != nil {
@@ -56,9 +51,9 @@ func main() {
 	}
 
 	walletStorage := storage.New(pool)
-	service := service.New(walletStorage)
+	walletService := service.New(walletStorage)
 	router := chi.NewRouter()
-	rest.New(service).SetupRouter(router)
+	rest.New(log, walletService).SetupRouter(router)
 
 	srv := &http.Server{
 		Addr:         cfg.HTTP.Address,
@@ -69,7 +64,7 @@ func main() {
 	}
 
 	go func() {
-		log.Info("starting server", "addr", srv.Addr)
+		log.Info("Starting server", "addr", srv.Addr)
 		if err := srv.ListenAndServe(); err != nil {
 			if !errors.Is(err, http.ErrServerClosed) {
 				log.Error("server failed", "error", err)
@@ -81,13 +76,14 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	log.Info("shutting down server...")
+	log.Info("Shutting down server...")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer shutdownCancel()
 
-	if err := srv.Shutdown(ctx); err != nil {
-		log.Error("server shutdown error", "error", err)
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Error("Server shutdown error", "error", err)
+		os.Exit(0)
 	}
-	log.Info("server stopped gracefully")
+	log.Info("Server stopped gracefully")
 }

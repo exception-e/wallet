@@ -48,7 +48,7 @@ func decodeJSON[T any](w http.ResponseWriter, r *http.Request) (*T, error) {
 }
 
 func walletIDFromRequest(r *http.Request) (uuid.UUID, error) {
-	id, err := uuid.Parse(chi.URLParam(r, "walletId"))
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("rest.walletIDFromRequest: %w: %w", types.ErrInvalidWalletID, err)
 	}

@@ -1,14 +1,21 @@
 package types
 
-type CreateOperationRequest struct {
-	OperationType string `json:"operationType" enums:"DEPOSIT,WITHDRAW"`
-	Amount        int64  `json:"amount" example:"1000" minimum:"1"`
+import "github.com/google/uuid"
+
+type CreateWalletRequest struct {
+	Currency string `json:"currency" example:"RUB" minLength:"3" maxLength:"3"`
 }
 
 type WalletResponse struct {
 	WalletID string `json:"walletId" format:"uuid"`
 	Balance  int64  `json:"balance" example:"49000"`
 	Currency string `json:"currency" example:"RUB"`
+}
+
+type CreateOperationRequest struct {
+	WalletID      uuid.UUID `json:"walletId" format:"uuid"`
+	OperationType string    `json:"operationType" enums:"DEPOSIT,WITHDRAW"`
+	Amount        int64     `json:"amount" example:"1000" minimum:"1"`
 }
 
 type OperationResponse struct {

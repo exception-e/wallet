@@ -22,9 +22,34 @@ type WalletStorage struct {
 }
 
 const (
-	tableName = "wallets"
-	columns   = "id, balance, currency, created_at, updated_at"
+	walletsTableName    = "wallets"
+	operationsTableName = "operations"
+	walletColumns       = "id, balance, currency, created_at, updated_at"
+	operationColumns    = "id, wallet_id, idempotency_key, type, amount, status, rejection_code, created_at"
 )
+
+func (w *WalletStorage) CreateWallet(ctx context.Context, input types.CreateWalletInput) (*domain.Wallet, error) {
+	query, args, err := sq.Insert(walletsTableName).
+		Columns("currency", "balance").
+		Values(input.Currency, input.Balance).
+		Suffix("RETURNING " + walletColumns).
+		PlaceholderFormat(sq.Dollar).
+		ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("walletRepository.Create (build query): %w", err)
+	}
+
+	wallet, err := scanWallet(psql.QuerierFromContext(ctx, w.pool).QueryRow(ctx, query, args...))
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "wallets_pkey" {
+			err = fmt.Errorf("%w: %w", types.ErrAlreadyExists, err)
+		}
+		return nil, fmt.Errorf("creating wallet (currency=%s): %w", input.Currency, err)
+	}
+
+	return wallet, nil
+}
 
 func (w *WalletStorage) RunInTx(ctx context.Context, fn types.TxFunc) error {
 	err := pgx.BeginTxFunc(ctx, w.pool, pgx.TxOptions{IsoLevel: pgx.ReadCommitted}, func(tx pgx.Tx) error {
@@ -37,9 +62,9 @@ func (w *WalletStorage) RunInTx(ctx context.Context, fn types.TxFunc) error {
 	return nil
 }
 
-func (w *WalletStorage) Get(ctx context.Context, id uuid.UUID) (*domain.Wallet, error) {
-	query, args, err := sq.Select(columns).
-		From(tableName).
+func (w *WalletStorage) GetWallet(ctx context.Context, id uuid.UUID) (*domain.Wallet, error) {
+	query, args, err := sq.Select(walletColumns).
+		From(walletsTableName).
 		Where(sq.Eq{"id": id}).
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
@@ -58,11 +83,11 @@ func (w *WalletStorage) Get(ctx context.Context, id uuid.UUID) (*domain.Wallet, 
 	return wallet, nil
 }
 
-func (w *WalletStorage) Update(ctx context.Context, input types.UpdateInput) (*domain.Wallet, error) {
-	builder := sq.Update(tableName).
+func (w *WalletStorage) UpdateWallet(ctx context.Context, input types.UpdateInput) (*domain.Wallet, error) {
+	builder := sq.Update(walletsTableName).
 		Set("updated_at", sq.Expr("clock_timestamp()")).
 		Where(sq.Eq{"id": input.Id}).
-		Suffix("RETURNING " + columns).
+		Suffix("RETURNING " + walletColumns).
 		PlaceholderFormat(sq.Dollar)
 	if input.Balance != nil {
 		builder = builder.Set("balance", *input.Balance)
@@ -84,13 +109,13 @@ func (w *WalletStorage) Update(ctx context.Context, input types.UpdateInput) (*d
 	return wallet, nil
 }
 
-func (w *WalletStorage) Lock(ctx context.Context, id uuid.UUID) (*domain.Wallet, error) {
+func (w *WalletStorage) LockWallet(ctx context.Context, id uuid.UUID) (*domain.Wallet, error) {
 	if psql.TxFromContext(ctx) == nil {
 		return nil, fmt.Errorf("walletRepository.Lock (walletID=%s): %w", id, types.ErrTransactionRequired)
 	}
 
-	query, args, err := sq.Select(columns).
-		From(tableName).
+	query, args, err := sq.Select(walletColumns).
+		From(walletsTableName).
 		Where(sq.Eq{"id": id}).
 		Suffix("FOR UPDATE").
 		PlaceholderFormat(sq.Dollar).
@@ -110,9 +135,9 @@ func (w *WalletStorage) Lock(ctx context.Context, id uuid.UUID) (*domain.Wallet,
 	return wallet, nil
 }
 
-func (w *WalletStorage) GetByIdempotencyKey(ctx context.Context, input types.GetByIdempotencyKeyInput) (*domain.Operation, error) {
-	query, args, err := sq.Select(columns).
-		From(tableName).
+func (w *WalletStorage) GetOperationByIdempotencyKey(ctx context.Context, input types.GetOperationByIdempotencyKeyInput) (*domain.Operation, error) {
+	query, args, err := sq.Select(operationColumns).
+		From(operationsTableName).
 		Where(sq.Eq{"wallet_id": input.WalletID, "idempotency_key": input.IdempotencyKey}).
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
@@ -131,12 +156,12 @@ func (w *WalletStorage) GetByIdempotencyKey(ctx context.Context, input types.Get
 	return operation, nil
 }
 
-func (w *WalletStorage) Create(ctx context.Context, input types.CreateInput) (*domain.Operation, error) {
-	query, args, err := sq.Insert(tableName).
-		Columns("wallet_id", "idempotency_key", "operation_type", "amount", "status", "balance_after", "rejection_code").
-		Values(input.WalletID, input.IdempotencyKey, input.Type, input.Amount, input.Status, input.BalanceAfter, input.RejectionCode).
+func (w *WalletStorage) CreateOperation(ctx context.Context, input types.CreateOperationInput) (*domain.Operation, error) {
+	query, args, err := sq.Insert(operationsTableName).
+		Columns("wallet_id", "idempotency_key", "type", "amount", "status", "rejection_code").
+		Values(input.WalletID, input.IdempotencyKey, input.Type, input.Amount, input.Status, input.RejectionCode).
 		Suffix("ON CONFLICT ON CONSTRAINT wallet_operations_idempotency_unique DO NOTHING").
-		Suffix("RETURNING " + columns).
+		Suffix("RETURNING " + operationColumns).
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
 	if err != nil {
@@ -187,9 +212,8 @@ func scanOperation(row pgx.Row) (*domain.Operation, error) {
 		&operation.WalletID,
 		&operation.IdempotencyKey,
 		&operation.Type,
-		&operation.Balance,
+		&operation.Amount,
 		&operation.Status,
-		&operation.BalanceAfter,
 		&operation.RejectionCode,
 		&operation.CreatedAt,
 	)

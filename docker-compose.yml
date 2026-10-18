@@ -2,10 +2,10 @@ services:
   app:
     build: .
     env_file:
-      - .env
-    container_name: walletapp
+      - config.env
     ports:
-      - "${APP_PORT:-8080}:8082"
+      - "8080:8080"
+    container_name: walletapp
     environment:
       POSTGRES_HOST: postgres
     depends_on:
@@ -13,13 +13,13 @@ services:
         condition: service_healthy
         required: false
     networks:
-      - postfeed-net
+      - walletapp-net
 
   postgres:
     image: postgres:18-alpine
     container_name: walletapp-postgres
     env_file:
-      - .env
+      - config.env
     ports:
       - "5433:5432"
     volumes:
@@ -36,5 +36,5 @@ volumes:
   postgres_data:
 
 networks:
-  postfeed-net:
+  walletapp-net:
     driver: bridge

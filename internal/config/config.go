@@ -1,7 +1,9 @@
 package config
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"time"
 
 	"github.com/caarlos0/env/v11"
@@ -16,12 +18,11 @@ type Config struct {
 }
 
 type HTTP struct {
-	Address           string        `env:"HTTP_ADDRESS"`
-	ReadHeaderTimeout time.Duration `env:"HTTP_READ_HEADER_TIMEOUT"`
-	ReadTimeout       time.Duration `env:"HTTP_READ_TIMEOUT"`
-	WriteTimeout      time.Duration `env:"HTTP_WRITE_TIMEOUT"`
-	IdleTimeout       time.Duration `env:"HTTP_IDLE_TIMEOUT"`
-	ShutdownTimeout   time.Duration `env:"HTTP_SHUTDOWN_TIMEOUT"`
+	Address         string        `env:"HTTP_ADDRESS"`
+	ReadTimeout     time.Duration `env:"HTTP_READ_TIMEOUT"`
+	WriteTimeout    time.Duration `env:"HTTP_WRITE_TIMEOUT"`
+	IdleTimeout     time.Duration `env:"HTTP_IDLE_TIMEOUT"`
+	ShutdownTimeout time.Duration `env:"HTTP_SHUTDOWN_TIMEOUT"`
 }
 
 type Database struct {
@@ -35,14 +36,17 @@ type Database struct {
 }
 
 func Load(path string) (Config, error) {
-	values, err := godotenv.Read(path)
-	if err != nil {
-		return Config{}, fmt.Errorf("config.Load (read path=%q): %w", path, err)
+	if err := godotenv.Load(path); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return Config{}, fmt.Errorf("config.Load (read %q): %w", path, err)
 	}
 
+	//values, err := godotenv.Read(path)
+	//if err != nil {
+	//	return Config{}, fmt.Errorf("config.Load (read path=%q): %w", path, err)
+	//}
+
 	var cfg Config
-	err = env.ParseWithOptions(&cfg, env.Options{
-		Environment:     values,
+	err := env.ParseWithOptions(&cfg, env.Options{
 		RequiredIfNoDef: true,
 	})
 	if err != nil {

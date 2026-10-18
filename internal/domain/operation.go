@@ -32,9 +32,8 @@ type Operation struct {
 	WalletID       uuid.UUID
 	IdempotencyKey string
 	Type           OperationType
-	Balance        int64
+	Amount         int64
 	Status         OperationStatus
-	BalanceAfter   *int64
 	RejectionCode  *RejectionCode
 	CreatedAt      time.Time
 }

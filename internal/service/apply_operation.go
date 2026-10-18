@@ -37,7 +37,7 @@ func (s *WalletService) ApplyOperation(ctx context.Context, input types.ApplyOpe
 }
 
 func (s *WalletService) applyOperationInTx(ctx context.Context, input types.ApplyOperationInput) (*domain.Operation, error) {
-	wallet, err := s.walletStorage.Lock(ctx, input.WalletID)
+	wallet, err := s.walletStorage.LockWallet(ctx, input.WalletID)
 	if errors.Is(err, storagetypes.ErrNotFound) {
 		return nil, fmt.Errorf("walletService.applyOperationInTx (lock walletID=%s): %w", input.WalletID, types.ErrWalletNotFound)
 	}
@@ -45,7 +45,7 @@ func (s *WalletService) applyOperationInTx(ctx context.Context, input types.Appl
 		return nil, fmt.Errorf("walletService.applyOperationInTx (lock walletID=%s): %w", input.WalletID, err)
 	}
 
-	createInput := storagetypes.CreateInput{
+	createInput := storagetypes.CreateOperationInput{
 		WalletID:       input.WalletID,
 		IdempotencyKey: input.IdempotencyKey,
 		Type:           input.Type,
@@ -75,20 +75,18 @@ func (s *WalletService) applyOperationInTx(ctx context.Context, input types.Appl
 
 	if createInput.RejectionCode != nil {
 		createInput.Status = domain.OperationStatusRejected
-	} else {
-		createInput.BalanceAfter = &balance
 	}
 
-	operation, err := s.walletStorage.Create(ctx, createInput)
+	operation, err := s.walletStorage.CreateOperation(ctx, createInput)
 	if errors.Is(err, storagetypes.ErrAlreadyExists) {
-		operation, err = s.walletStorage.GetByIdempotencyKey(ctx, storagetypes.GetByIdempotencyKeyInput{
+		operation, err = s.walletStorage.GetOperationByIdempotencyKey(ctx, storagetypes.GetOperationByIdempotencyKeyInput{
 			WalletID:       input.WalletID,
 			IdempotencyKey: input.IdempotencyKey,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("walletService.applyOperationInTx (get operation, walletID=%s): %w", input.WalletID, err)
 		}
-		if operation.Type != input.Type || operation.Balance != input.Amount {
+		if operation.Type != input.Type || operation.Amount != input.Amount {
 			return nil, fmt.Errorf("walletService.applyOperationInTx (check idempotency, walletID=%s): %w", input.WalletID, types.ErrIdempotencyConflict)
 		}
 		return operation, nil
@@ -101,7 +99,7 @@ func (s *WalletService) applyOperationInTx(ctx context.Context, input types.Appl
 	}
 
 	if operation.Status == domain.OperationStatusApplied {
-		_, err = s.walletStorage.Update(ctx, storagetypes.UpdateInput{
+		_, err = s.walletStorage.UpdateWallet(ctx, storagetypes.UpdateInput{
 			Id:      input.WalletID,
 			Balance: &balance,
 		})

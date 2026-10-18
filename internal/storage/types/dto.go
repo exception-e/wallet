@@ -14,17 +14,21 @@ type UpdateInput struct {
 
 type TxFunc = func(ctx context.Context) error
 
-type CreateInput struct {
+type CreateWalletInput struct {
+	Currency string
+	Balance  int64
+}
+
+type CreateOperationInput struct {
 	WalletID       uuid.UUID
 	IdempotencyKey string
 	Type           domain.OperationType
 	Amount         int64
 	Status         domain.OperationStatus
-	BalanceAfter   *int64
 	RejectionCode  *domain.RejectionCode
 }
 
-type GetByIdempotencyKeyInput struct {
+type GetOperationByIdempotencyKeyInput struct {
 	WalletID       uuid.UUID
 	IdempotencyKey string
 }

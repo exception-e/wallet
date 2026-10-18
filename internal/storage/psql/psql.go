@@ -2,11 +2,11 @@ package psql
 
 import (
 	"context"
-	"embed"
 	"errors"
 	"fmt"
 	"time"
 	"walletApp/internal/config"
+	"walletApp/internal/storage/migrations"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -14,9 +14,6 @@ import (
 	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/lock"
 )
-
-//go:embed *.sql
-var FS embed.FS
 
 func InitDB(ctx context.Context, cfg config.Database) (*pgxpool.Pool, error) {
 	poolConfig, err := pgxpool.ParseConfig(cfg.DSN)
@@ -69,7 +66,7 @@ func RunMigrations(ctx context.Context, cfg config.Database) (err error) {
 		return fmt.Errorf("migrations.Up (create advisory locker): %w", err)
 	}
 
-	provider, err := goose.NewProvider(goose.DialectPostgres, db, FS, goose.WithSessionLocker(locker))
+	provider, err := goose.NewProvider(goose.DialectPostgres, db, migrations.FS, goose.WithSessionLocker(locker))
 	if err != nil {
 		return fmt.Errorf("migrations.Up (create provider): %w", err)
 	}

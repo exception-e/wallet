@@ -1,0 +1,76 @@
+@baseUrl = http://localhost:8080
+@walletID = 01a150e5-b5e1-726b-8b30-56ccdbb596e6
+
+### Создать кошелёк — 201, balance = 0
+POST {{baseUrl}}/api/v1/wallet
+Content-Type: application/json
+
+{
+  "currency": "RUB"
+}
+
+### Получить баланс — 200
+GET {{baseUrl}}/api/v1/wallets/{{walletID}}
+
+### Пополнить на 100 RUB — 200, APPLIED
+POST {{baseUrl}}/api/v1/wallets
+Content-Type: application/json
+Idempotency-Key: deposit-key-1
+
+{
+  "walletId": "{{walletID}}",
+  "operationType": "DEPOSIT",
+  "amount": 10000
+}
+
+### Списать 25 RUB — 200, APPLIED
+POST {{baseUrl}}/api/v1/wallets
+Content-Type: application/json
+Idempotency-Key: withdraw-key-1
+
+{
+  "walletId": "{{walletID}}",
+  "operationType": "WITHDRAW",
+  "amount": 2500
+}
+
+### Списать больше остатка — 422, REJECTED, INSUFFICIENT_FUNDS
+POST {{baseUrl}}/api/v1/wallets
+Content-Type: application/json
+Idempotency-Key: withdraw-key-2
+
+{
+  "walletId": "{{walletID}}",
+  "operationType": "WITHDRAW",
+  "amount": 1000000
+}
+
+### Проверить итоговый баланс — 200, balance = 7500
+GET {{baseUrl}}/api/v1/wallets/{{walletID}}
+
+### Запрос без ключа идемпотентности — 400, MISSING_IDEMPOTENCY_KEY
+POST {{baseUrl}}/api/v1/wallets
+Content-Type: application/json
+
+{
+  "walletId": "{{walletID}}",
+  "operationType": "DEPOSIT",
+  "amountMinor": 100
+}
+
+### Нулевая сумма — 400, INVALID_AMOUNT
+POST {{baseUrl}}/api/v1/wallets
+Content-Type: application/json
+Idempotency-Key: {{$uuid}}
+
+{
+  "walletId": "{{walletID}}",
+  "operationType": "DEPOSIT",
+  "amount": 0
+}
+
+### Несуществующий кошелёк — 404, WALLET_NOT_FOUND
+GET {{baseUrl}}/api/v1/wallets/01900000-0000-7000-8000-000000000000
+
+### Некорректный UUID — 400, INVALID_WALLET_ID
+GET {{baseUrl}}/api/v1/wallets/not-a-uuid

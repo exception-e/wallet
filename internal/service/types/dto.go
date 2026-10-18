@@ -6,6 +6,10 @@ import (
 	"github.com/google/uuid"
 )
 
+type CreateInput struct {
+	Currency string
+}
+
 type ApplyOperationInput struct {
 	WalletID       uuid.UUID
 	IdempotencyKey string

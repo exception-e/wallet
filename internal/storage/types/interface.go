@@ -8,10 +8,13 @@ import (
 )
 
 type Storage interface {
-	Get(ctx context.Context, id uuid.UUID) (*domain.Wallet, error)
-	Update(ctx context.Context, input UpdateInput) (*domain.Wallet, error)
-	Lock(ctx context.Context, id uuid.UUID) (*domain.Wallet, error)
 	RunInTx(ctx context.Context, fn TxFunc) error
-	Create(ctx context.Context, input CreateInput) (*domain.Operation, error)
-	GetByIdempotencyKey(ctx context.Context, input GetByIdempotencyKeyInput) (*domain.Operation, error)
+
+	CreateWallet(ctx context.Context, input CreateWalletInput) (*domain.Wallet, error)
+	GetWallet(ctx context.Context, id uuid.UUID) (*domain.Wallet, error)
+	UpdateWallet(ctx context.Context, input UpdateInput) (*domain.Wallet, error)
+	LockWallet(ctx context.Context, id uuid.UUID) (*domain.Wallet, error)
+
+	CreateOperation(ctx context.Context, input CreateOperationInput) (*domain.Operation, error)
+	GetOperationByIdempotencyKey(ctx context.Context, input GetOperationByIdempotencyKeyInput) (*domain.Operation, error)
 }
