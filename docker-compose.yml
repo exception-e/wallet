@@ -1,0 +1,40 @@
+services:
+  app:
+    build: .
+    env_file:
+      - .env
+    container_name: walletapp
+    ports:
+      - "${APP_PORT:-8080}:8082"
+    environment:
+      POSTGRES_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: false
+    networks:
+      - postfeed-net
+
+  postgres:
+    image: postgres:18-alpine
+    container_name: walletapp-postgres
+    env_file:
+      - .env
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - walletapp-net
+
+volumes:
+  postgres_data:
+
+networks:
+  postfeed-net:
+    driver: bridge
