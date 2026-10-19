@@ -1,8 +1,8 @@
 @baseUrl = http://localhost:8080
-@walletID = 01a150e5-b5e1-726b-8b30-56ccdbb596e6
+@walletID = 01a15382-11e5-7584-ae79-e995e3fb90ff
 
 ### Создать кошелёк — 201, balance = 0
-POST {{baseUrl}}/api/v1/wallet
+POST {{baseUrl}}/api/v1/wallets
 Content-Type: application/json
 
 {
@@ -13,7 +13,7 @@ Content-Type: application/json
 GET {{baseUrl}}/api/v1/wallets/{{walletID}}
 
 ### Пополнить на 100 RUB — 200, APPLIED
-POST {{baseUrl}}/api/v1/wallets
+POST {{baseUrl}}/api/v1/wallet
 Content-Type: application/json
 Idempotency-Key: deposit-key-1
 
@@ -24,7 +24,7 @@ Idempotency-Key: deposit-key-1
 }
 
 ### Списать 25 RUB — 200, APPLIED
-POST {{baseUrl}}/api/v1/wallets
+POST {{baseUrl}}/api/v1/wallet
 Content-Type: application/json
 Idempotency-Key: withdraw-key-1
 
@@ -35,7 +35,7 @@ Idempotency-Key: withdraw-key-1
 }
 
 ### Списать больше остатка — 422, REJECTED, INSUFFICIENT_FUNDS
-POST {{baseUrl}}/api/v1/wallets
+POST {{baseUrl}}/api/v1/wallet
 Content-Type: application/json
 Idempotency-Key: withdraw-key-2
 
@@ -49,17 +49,17 @@ Idempotency-Key: withdraw-key-2
 GET {{baseUrl}}/api/v1/wallets/{{walletID}}
 
 ### Запрос без ключа идемпотентности — 400, MISSING_IDEMPOTENCY_KEY
-POST {{baseUrl}}/api/v1/wallets
+POST {{baseUrl}}/api/v1/wallet
 Content-Type: application/json
 
 {
   "walletId": "{{walletID}}",
   "operationType": "DEPOSIT",
-  "amountMinor": 100
+  "amount": 100
 }
 
 ### Нулевая сумма — 400, INVALID_AMOUNT
-POST {{baseUrl}}/api/v1/wallets
+POST {{baseUrl}}/api/v1/wallet
 Content-Type: application/json
 Idempotency-Key: {{$uuid}}
 

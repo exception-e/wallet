@@ -13,6 +13,7 @@ require (
 	github.com/stretchr/testify v1.12.1
 	github.com/testcontainers/testcontainers-go v0.44.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.44.0
+	go.uber.org/mock v0.6.0
 	gotest.tools/v3 v3.5.2
 )
 

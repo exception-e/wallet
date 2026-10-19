@@ -29,8 +29,8 @@ func (h *handler) SetupRouter(r chi.Router) chi.Router {
 		w.WriteHeader(http.StatusOK)
 	})
 	r.Route("/api/v1", func(r chi.Router) {
-		r.Post("/wallet", h.CreateWallet)
-		r.Post("/wallets", h.CreateOperation)
+		r.Post("/wallets", h.CreateWallet)
+		r.Post("/wallet", h.CreateOperation)
 		r.Get("/wallets/{id}", h.Balance)
 	})
 	return r

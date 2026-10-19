@@ -7,6 +7,8 @@ import (
 	"github.com/google/uuid"
 )
 
+//go:generate mockgen -source=interface.go -destination=../../service/mocks/mock_storage.go -package=mocks
+
 type Storage interface {
 	RunInTx(ctx context.Context, fn TxFunc) error
 

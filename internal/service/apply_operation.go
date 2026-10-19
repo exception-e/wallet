@@ -29,7 +29,6 @@ func (s *WalletService) ApplyOperation(ctx context.Context, input types.ApplyOpe
 		return txErr
 	})
 	if err != nil {
-		// A result read or written inside the transaction is not returned if commit failed.
 		return nil, fmt.Errorf("walletService.ApplyOperation (run transaction, walletID=%s): %w", input.WalletID, err)
 	}
 
