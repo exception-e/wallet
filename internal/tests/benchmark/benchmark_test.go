@@ -123,7 +123,7 @@ func (a *testApp) createWallet(b *testing.B) string {
 
 	var wallet resttypes.WalletResponse
 	input := resttypes.CreateWalletRequest{Currency: "RUB"}
-	a.doRequest(b, http.MethodPost, "/api/v1/wallet", input, &wallet, http.StatusCreated)
+	a.doRequest(b, http.MethodPost, "/api/v1/wallets", input, &wallet, http.StatusCreated)
 
 	return wallet.WalletID
 }
@@ -144,7 +144,7 @@ func (a *testApp) applyOperation(b *testing.B, walletID string, operationType do
 		OperationType: string(operationType),
 		Amount:        amount,
 	}
-	a.doRequest(b, http.MethodPost, "/api/v1/wallets", input, &operation, http.StatusOK)
+	a.doRequest(b, http.MethodPost, "/api/v1/wallet", input, &operation, http.StatusOK)
 
 	require.Equal(b, domain.OperationStatusApplied, domain.OperationStatus(operation.Status))
 }
